@@ -1,5 +1,22 @@
+import os
+import sys
+import types
 import logging
 from contextlib import asynccontextmanager
+
+# Enable seamless imports whether running from project root or inside backend/ directory (e.g. Render/Docker)
+_app_dir = os.path.dirname(os.path.abspath(__file__))
+_backend_dir = os.path.dirname(_app_dir)
+_parent_dir = os.path.dirname(_backend_dir)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+if "backend" not in sys.modules:
+    _backend_mod = types.ModuleType("backend")
+    _backend_mod.__path__ = [_backend_dir]
+    sys.modules["backend"] = _backend_mod
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -67,6 +84,8 @@ app.include_router(models_router, prefix="/v1", tags=["Models & Health"])
 app.include_router(rules_router, prefix="/v1", tags=["Routing Rules"])
 app.include_router(metrics_router, prefix="/v1", tags=["Metrics"])
 
+@app.get("/", tags=["System"])
+@app.get("/health", tags=["System"])
 @app.get("/healthz", tags=["System"])
 async def health_check():
     return {
